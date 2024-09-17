@@ -1,0 +1,32 @@
+{
+  "name": "dev.mikesky.openxrextensions",
+  "displayName": "OpenXR Extensions",
+  "version": "0.1.0",
+  "unity": "2021.3",
+  "description": "OpenXR extensions for your Unity project. No vendor bloat.",
+  "keywords": [
+    "OpenXR",
+    "VR",
+    "AR",
+    "MR",
+    "XR",
+    "Extensions",
+    "Oculus",
+    "Meta",
+    "Pico",
+    "HTC",
+    "Vive",
+    "Varjo",
+    "Valve",
+    "Steam"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Mike Nisbet",
+    "email": "me@mikesky.dev"
+  },
+  "homepage": "https://github.com/mikeskydev/unity-openxr-extensions",
+  "dependencies": {
+    "com.unity.xr.openxr": "1.13.0"
+  }
+}
