@@ -16,7 +16,7 @@
         {
             "name": "com.unity.xr.compositionlayers",
             "expression": "1.0.0",
-            "define": "XR_COMPOSITIONLAYERS"
+            "define": "XR_COMPOSITION_LAYERS"
         }
     ],
     "noEngineReferences": false

@@ -1,16 +1,15 @@
 // SPDX-FileCopyrightText: 2024 Michael Nisbet <me@mikesky.dev>
 // SPDX-License-Identifier: MIT
 
+#if XR_COMPOSITION_LAYERS
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features;
 using UnityEngine.XR.OpenXR.CompositionLayers;
 using UnityEngine.XR.OpenXR.NativeTypes;
-using AOT;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -33,43 +32,133 @@ namespace OpenXR.Extensions
         public const string XR_FB_PASSTHROUGH = "XR_FB_passthrough";
         public const string FeatureId = "dev.mikesky.openxr.extensions.fbpassthrough";
 
-        static NativeArray<XrCompositionLayerPassthroughFB> layersNA;
-        static NativeArray<int> layersSortOrderNA;
+        bool _layerProviderSubscribed;
 
         public bool StartEnabled;
-        private static bool _implAvailable;
-        private static bool _implEnabled;
-        private static XrPassthroughFB activePassthrough;// = new XrPassthroughFB();
-        private static XrPassthroughLayerFB activeLayer;// = new XrPassthroughLayerFB();
 
-        public static bool Available => _implAvailable;
+        public static bool PassthroughRunning { get; private set; }
+        public static bool PassthroughRunningBeforeStateChange { get; private set; }
 
-        // Public toggle
-        public static bool ExtEnabled
+        public static XrPassthroughFB PassthroughHandle => _passthroughHandle;
+        private static XrPassthroughFB _passthroughHandle;
+
+        private static Dictionary<int, XrPassthroughLayerFB> layerHandleCache = new Dictionary<int, XrPassthroughLayerFB>();
+
+        public static bool CreatePassthroughLayer(int compLayerId, XrPassthroughLayerCreateInfoFB createInfo, out XrPassthroughLayerFB layerHandle)
         {
-            get => _implEnabled;
-
-            set
+            // A maximum of 3 layer handles can exist.
+            // Current Xr Comp Layers package seems to not destroy it's layers properly,
+            // so we cache them ourselves.
+            if (layerHandleCache.TryGetValue(compLayerId, out var foundHandle))
             {
-                if (_implAvailable == false || _implEnabled == value)
-                {
-                    return;
-                }
+                layerHandle = foundHandle;
+                return true;
+            }
 
-                if (value)
-                {
-                    _implEnabled = StartPassthrough();
-                }
-                else
-                {
-                    PausePassthrough();
-                    _implEnabled = false;
-                }
+            if (layerHandleCache.Count >= 3)
+            {
+                Debug.LogError("Maximum number of passthrough layers reached.");
+                layerHandle = new XrPassthroughLayerFB() { handle = 0 };
+                return false;
+            }
+
+            var result = CreatePassthroughLayer(createInfo, out layerHandle);
+            if (result)
+            {
+                layerHandleCache[compLayerId] = layerHandle;
+            }
+            return result;
+        }
+
+        static bool CreatePassthroughLayer(XrPassthroughLayerCreateInfoFB createInfo, out XrPassthroughLayerFB layerHandle)
+        {
+            var result = xrCreatePassthroughLayerFB(XrSession, createInfo, out layerHandle);
+            if (result != XrResult.Success)
+            {
+                Debug.LogError($"Failed to create passthrough layer: {result}");
+            }
+            return result == XrResult.Success;
+        }
+
+        public static bool DestroyPassthroughLayer(int compLayerId ,XrPassthroughLayerFB layerHandle)
+        {
+            if (layerHandleCache.ContainsKey(compLayerId))
+            {
+                layerHandleCache.Remove(compLayerId);
+            }
+
+            return DestroyPassthroughLayer(layerHandle);
+        }
+
+        static bool DestroyPassthroughLayer(XrPassthroughLayerFB layerHandle)
+        {
+            var result = xrDestroyPassthroughLayerFB(layerHandle);
+            if (result != XrResult.Success)
+            {
+                Debug.LogError($"Failed to destroy passthrough layer: {result}");
+            }
+            return result == XrResult.Success;
+        }
+
+        public static bool StartPassthrough()
+        {
+            XrResult result = xrPassthroughStartFB(_passthroughHandle);
+            if (result != XrResult.Success)
+            {
+                Debug.LogError($"xrPassthroughStartFB failed: {result}");
+                return false;
+            }
+            PassthroughRunning = true;
+
+            return true;
+        }
+
+        public static void PausePassthrough()
+        {
+            XrResult result = xrPassthroughPauseFB(_passthroughHandle);
+            if (result != XrResult.Success)
+            {
+                Debug.LogError($"xrPassthroughPauseFB failed: {result}");
+                return;
+            }
+            PassthroughRunning = false;
+        }
+
+        #region Unity OpenXR Impl
+
+        protected override void OnEnable()
+        {
+            if (OpenXRLayerProvider.isStarted)
+                CreateAndRegisterLayerHandler();
+            else
+            {
+                OpenXRLayerProvider.Started += CreateAndRegisterLayerHandler;
+                _layerProviderSubscribed = true;
             }
         }
 
-        bool InitPassthrough()
+        protected override void OnDisable()
         {
+            if (_layerProviderSubscribed)
+            {
+                OpenXRLayerProvider.Started -= CreateAndRegisterLayerHandler;
+                _layerProviderSubscribed = false;
+            }
+        }
+
+        protected void CreateAndRegisterLayerHandler()
+        {
+            if (enabled)
+            {
+                var layerHandler = new FBPassthroughLayerHandler();
+                OpenXRLayerProvider.RegisterLayerHandler(typeof(FBPassthroughLayerData), layerHandler);
+            }
+        }
+
+        protected override void OnSessionCreate(ulong xrSession)
+        {
+            base.OnSessionCreate(xrSession);
+
             // If creation bit is not supplied, the state will be implied as paused
             XrPassthroughFlagsFB flags = StartEnabled
                 ? XrPassthroughFlagsFB.XR_PASSTHROUGH_IS_RUNNING_AT_CREATION_BIT_FB
@@ -78,113 +167,23 @@ namespace OpenXR.Extensions
             XrResult result = xrCreatePassthroughFB(
                 XrSession,
                 new XrPassthroughCreateInfoFB(flags),
-                out activePassthrough);
+                out _passthroughHandle);
             if (result != XrResult.Success)
             {
                 Debug.LogError($"xrCreatePassthroughFB failed: {result}");
-                return false;
-            }
-
-            result = xrCreatePassthroughLayerFB(
-                XrSession,
-                new XrPassthroughLayerCreateInfoFB(activePassthrough, flags, XrPassthroughLayerPurposeFB.XR_PASSTHROUGH_LAYER_PURPOSE_RECONSTRUCTION_FB),
-                out activeLayer);
-            if (result != XrResult.Success)
-            {
-                Debug.LogError($"xrCreatePassthroughLayerFB failed: {result}");
-                return false;
-            }
-
-            _implEnabled = StartEnabled;
-            return true;
-        }
-
-        static bool StartPassthrough()
-        {
-            XrResult result = xrPassthroughStartFB(activePassthrough);
-            if (result != XrResult.Success)
-            {
-                Debug.LogError($"xrPassthroughStartFB failed: {result}");
-                return false;
-            }
-
-            result = xrPassthroughLayerResumeFB(activeLayer);
-            if (result != XrResult.Success)
-            {
-                Debug.LogError($"xrPassthroughLayerResumeFB failed: {result}");
-                return false;
-            }
-
-            return true;
-        }
-
-        static void PausePassthrough()
-        {
-            XrResult result = xrPassthroughLayerPauseFB(activeLayer);
-            if (result != XrResult.Success)
-            {
-                Debug.LogError($"xrPassthroughLayerPauseFB failed: {result}");
                 return;
             }
-
-            result = xrPassthroughPauseFB(activePassthrough);
-            if (result != XrResult.Success)
-            {
-                Debug.LogError($"xrPassthroughPauseFB failed: {result}");
-                return;
-            }
-        }
-
-        public static void OnUpdate()
-        {
-            if (ExtEnabled == false) return;
-
-            XrCompositionLayerPassthroughFB layer = new XrCompositionLayerPassthroughFB(XrCompositionLayerFlags.SourceAlpha, activeLayer);
-
-            // This is the sort layer
-            int sortLayerTarget = -1;
-
-            layersNA[0] = layer;
-            layersSortOrderNA[0] = sortLayerTarget;
-            unsafe
-            {
-                OpenXRLayerUtility.AddActiveLayersToEndFrame(layersNA.GetUnsafePtr(), layersSortOrderNA.GetUnsafePtr(), layersNA.Length, UnsafeUtility.SizeOf<XrCompositionLayerPassthroughFB>());
-            }
-        }
-
-
-        #region Unity OpenXR Impl
-        /// <inheritdoc />
-
-        /// <inheritdoc />
-        protected override void OnSessionCreate(ulong xrSession)
-        {
-            base.OnSessionCreate(xrSession);
-
-            _implAvailable = OpenXRRuntime.IsExtensionEnabled(XR_FB_PASSTHROUGH) && InitPassthrough();
-
-            layersNA = new NativeArray<XrCompositionLayerPassthroughFB>(1, Allocator.Persistent);
-            layersSortOrderNA = new NativeArray<int>(1, Allocator.Persistent);
+            PassthroughRunning = StartEnabled;
         }
 
         protected override void OnSessionDestroy(ulong xrSession)
         {
             base.OnSessionDestroy(xrSession);
 
-            if (layersNA.IsCreated)
-                layersNA.Dispose();
-            if (layersSortOrderNA.IsCreated)
-                layersSortOrderNA.Dispose();
-
-            xrDestroyPassthroughLayerFB(activeLayer);
-            xrDestroyPassthroughFB(activePassthrough);
-        }
-
-        protected override void OnSessionEnd(ulong xrSession)
-        {
-            base.OnSessionEnd(xrSession);
-            if (!ExtEnabled) return;
-            ExtEnabled = false;
+            if (_passthroughHandle.handle != 0)
+            {
+                xrDestroyPassthroughFB(_passthroughHandle);
+            }
         }
 
         #endregion
@@ -432,3 +431,4 @@ namespace UnityEngine.XR.OpenXR.NativeTypes
     delegate XrResult del_xrPassthroughLayerResumeFB(XrPassthroughLayerFB layer);
     delegate XrResult del_xrPassthroughLayerSetStyleFB(XrPassthroughLayerFB layer, [In] XrPassthroughStyleFB style);
 }
+#endif

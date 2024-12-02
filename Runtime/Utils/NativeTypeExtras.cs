@@ -7,7 +7,12 @@ using System.Runtime.InteropServices;
 namespace UnityEngine.XR.OpenXR.NativeTypes
 {
     // Placeholders where not defined in main OpenXR plugin
-    [StructLayout(LayoutKind.Sequential)] public struct XrBool32 { public UInt32 value; }
+    [StructLayout(LayoutKind.Sequential)] public struct XrBool32
+    {
+        public UInt32 value;
+        public XrBool32(bool value) => this.value = value ? 1u : 0u;
+    }
+
     [StructLayout(LayoutKind.Sequential)] public struct XrTime { public Int64 value; }
     [StructLayout(LayoutKind.Sequential)] public struct XrDuration { public Int64 value; }
 
@@ -21,8 +26,8 @@ namespace UnityEngine.XR.OpenXR.NativeTypes
 
     public static class Constants
     {
-        public const int XR_TRUE = 1;
-        public const int XR_FALSE = 0;
+        public const uint XR_TRUE = 1;
+        public const uint XR_FALSE = 0;
         public const int XR_MAX_EXTENSION_NAME_SIZE = 128;
         public const int XR_MAX_API_LAYER_NAME_SIZE = 256;
         public const int XR_MAX_API_LAYER_DESCRIPTION_SIZE = 256;
@@ -58,30 +63,10 @@ namespace UnityEngine.XR.OpenXR.NativeTypes
     [Flags]
     public enum XrSpaceLocationFlagsExt : UInt64
     {
-        /// <summary>
-        /// Default space location flag.
-        /// </summary>
-        None = 0,
-
-        /// <summary>
-        /// Orientation Valid bit.
-        /// </summary>
-        OrientationValid = 1,
-
-        /// <summary>
-        /// Position Valid bit.
-        /// </summary>
-        PositionValid = 2,
-
-        /// <summary>
-        /// Oriention Tracked bit.
-        /// </summary>
-        OrientationTracked = 4,
-
-        /// <summary>
-        /// Position Tracked bit.
-        /// </summary>
-        PositionTracked = 8
+        XR_SPACE_LOCATION_ORIENTATION_VALID_BIT = 1,
+        XR_SPACE_LOCATION_POSITION_VALID_BIT = 2,
+        XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT = 4,
+        XR_SPACE_LOCATION_POSITION_TRACKED_BIT = 8
     }
 
     // Specified as [Flags] in the main OpenXR plugin, wrong
@@ -135,6 +120,7 @@ namespace UnityEngine.XR.OpenXR.NativeTypes
         public const XrStructureType XR_TYPE_PASSTHROUGH_COLOR_MAP_MONO_TO_MONO_FB = (XrStructureType)1000118022;
         public const XrStructureType XR_TYPE_PASSTHROUGH_BRIGHTNESS_CONTRAST_SATURATION_FB = (XrStructureType)1000118023;
         public const XrStructureType XR_TYPE_EVENT_DATA_PASSTHROUGH_STATE_CHANGED_FB = (XrStructureType)1000118030;
+        public const XrStructureType XR_TYPE_COMPOSITION_LAYER_DEPTH_TEST_FB = (XrStructureType)1000212000;
         public const XrStructureType XR_TYPE_SYSTEM_PROPERTIES_BODY_TRACKING_FULL_BODY_META = (XrStructureType) 1000274000;
         public const XrStructureType XR_TYPE_SYSTEM_BOUNDARY_VISIBILITY_PROPERTIES_META = (XrStructureType)1000528000;
         public const XrStructureType XR_TYPE_EVENT_DATA_BOUNDARY_VISIBILITY_CHANGED_META = (XrStructureType)1000528001;
