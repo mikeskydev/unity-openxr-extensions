@@ -1,22 +1,15 @@
 // SPDX-FileCopyrightText: 2024 Michael Nisbet <me@mikesky.dev>
 // SPDX-License-Identifier: MIT
 
-using System;
 using System.Runtime.InteropServices;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features;
 using UnityEngine.XR.OpenXR.NativeTypes;
 using UnityEngine;
-using System.IO;
-using System.Xml;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.XR.OpenXR.Features;
-#endif
-
-#if UNITY_EDITOR && UNITY_ANDROID
-using UnityEditor.Android;
 #endif
 
 namespace OpenXR.Extensions
@@ -31,9 +24,6 @@ namespace OpenXR.Extensions
         FeatureId = FeatureId)]
 #endif
     public class METABoundaryVisibility : FeatureBase<METABoundaryVisibility>
-#if UNITY_EDITOR && UNITY_ANDROID
-    , IPostGenerateGradleAndroidProject
-#endif
     {
         public const string XR_META_boundary_visibility = "XR_META_boundary_visibility";
         public const string FeatureId = "dev.mikesky.openxr.extensions.metaboundaryvisibility";
@@ -46,40 +36,6 @@ namespace OpenXR.Extensions
 
             var result = xrRequestBoundaryVisibilityMETA(XrSession, boundaryVisibility);
             return result == XrResult.Success;
-        }
-
-        public int callbackOrder => 0;
-
-        public void OnPostGenerateGradleAndroidProject(string path)
-        {
-            if (!enabled) return;
-
-            string manifestFolder = Path.Combine(path, "src/main");
-            string file = manifestFolder + "/AndroidManifest.xml";
-
-            try
-            {
-                XmlDocument doc = new XmlDocument();
-                doc.Load(file);
-
-                XmlElement element = (XmlElement)doc.SelectSingleNode("/manifest");
-                var androidNamespaceURI = element.GetAttribute("xmlns:android");
-
-                AndroidManifestHelper.AddOrRemoveTag(doc,
-                        androidNamespaceURI,
-                        "/manifest",
-                        "uses-permission",
-                        "com.oculus.permission.BOUNDARY_VISIBILITY",
-                        true,
-                        true
-                );
-
-                doc.Save(file);
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
-            }
         }
 
         #region OpenXR native bindings

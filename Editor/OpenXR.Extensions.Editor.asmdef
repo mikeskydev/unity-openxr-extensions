@@ -1,0 +1,27 @@
+{
+    "name": "OpenXR.Extensions.Editor",
+    "rootNamespace": "OpenXR.Extensions.Editor",
+    "references": [
+        "GUID:4847341ff46394e83bb78fbd0652937e",
+        "GUID:96aa6ba065960476598f8f643e7252b6",
+        "GUID:f9fe0089ec81f4079af78eb2287a6163",
+        "GUID:45a1251c6f46cca469d27448b036e675"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.compositionlayers",
+            "expression": "1.0.0",
+            "define": "XR_COMPOSITION_LAYERS"
+        }
+    ],
+    "noEngineReferences": false
+}

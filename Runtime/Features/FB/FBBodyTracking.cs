@@ -11,10 +11,6 @@ using AOT;
 using System.IO;
 using System.Xml;
 
-#if UNITY_EDITOR && UNITY_ANDROID
-using UnityEditor.Android;
-#endif
-
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.XR.OpenXR.Features;
@@ -33,13 +29,21 @@ namespace OpenXR.Extensions
         Priority = 1)]
 #endif
     public class FBBodyTracking : FeatureBase<FBBodyTracking>
-#if UNITY_EDITOR && UNITY_ANDROID
-    , IPostGenerateGradleAndroidProject
-#endif
     {
         public const string XR_FB_BODY_TRACKING = "XR_FB_body_tracking";
         public const string XR_META_BODY_TRACKING_FULL = "XR_META_body_tracking_full_body";
         public const string FeatureId = "dev.mikesky.openxr.extensions.fbbodytracking";
+
+        public bool RequiredFeature;
+
+        [Flags]
+        public enum TrackingType
+        {
+            Torso,
+            Full
+        }
+
+        public TrackingType _TrackingType;
 
         public static bool BodyTrackingSupported { get; private set; }
         public static bool FullBodyTrackingSupported { get; private set; }
@@ -62,7 +66,7 @@ namespace OpenXR.Extensions
         {
             base.OnSessionCreate(xrSession);
 
-            bool MetaBodyTrackingFullEnabled = OpenXRRuntime.IsExtensionEnabled(XR_META_BODY_TRACKING_FULL);
+            bool MetaBodyTrackingFullEnabled = OpenXRRuntime.IsExtensionEnabled(XR_META_BODY_TRACKING_FULL) && _TrackingType == TrackingType.Full;
 
             unsafe
             {
@@ -253,40 +257,6 @@ namespace OpenXR.Extensions
         }
 
         #endregion
-
-        public int callbackOrder => 0;
-        public void OnPostGenerateGradleAndroidProject(string path)
-        {
-            if (!enabled) return;
-            Debug.Log("Adding body tracking permission to AndroidManifest.xml");
-
-            string manifestFolder = Path.Combine(path, "src/main");
-            string file = manifestFolder + "/AndroidManifest.xml";
-
-            try
-            {
-                XmlDocument doc = new XmlDocument();
-                doc.Load(file);
-
-                XmlElement element = (XmlElement)doc.SelectSingleNode("/manifest");
-                var androidNamespaceURI = element.GetAttribute("xmlns:android");
-
-                AndroidManifestHelper.AddOrRemoveTag(doc,
-                        androidNamespaceURI,
-                        "/manifest",
-                        "uses-feature",
-                        "com.oculus.software.body_tracking",
-                        false,
-                        true
-                );
-
-                doc.Save(file);
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
-            }
-        }
     }
 }
 

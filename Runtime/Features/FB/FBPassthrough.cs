@@ -32,8 +32,7 @@ namespace OpenXR.Extensions
         public const string XR_FB_PASSTHROUGH = "XR_FB_passthrough";
         public const string FeatureId = "dev.mikesky.openxr.extensions.fbpassthrough";
 
-        bool _layerProviderSubscribed;
-
+        public bool RequiredFeature;
         public bool StartEnabled;
 
         public static bool PassthroughRunning { get; private set; }
@@ -41,7 +40,6 @@ namespace OpenXR.Extensions
 
         public static XrPassthroughFB PassthroughHandle => _passthroughHandle;
         private static XrPassthroughFB _passthroughHandle;
-
         private static Dictionary<int, XrPassthroughLayerFB> layerHandleCache = new Dictionary<int, XrPassthroughLayerFB>();
 
         public static bool CreatePassthroughLayer(int compLayerId, XrPassthroughLayerCreateInfoFB createInfo, out XrPassthroughLayerFB layerHandle)
@@ -125,6 +123,8 @@ namespace OpenXR.Extensions
         }
 
         #region Unity OpenXR Impl
+
+        private bool _layerProviderSubscribed;
 
         protected override void OnEnable()
         {
