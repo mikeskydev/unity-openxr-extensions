@@ -28,7 +28,7 @@ namespace OpenXR.Extensions
         public const string XR_META_boundary_visibility = "XR_META_boundary_visibility";
         public const string FeatureId = "dev.mikesky.openxr.extensions.metaboundaryvisibility";
 
-        public static bool SetBoundaryVisibility(bool shouldBoundaryVisibilityBeSuppressed)
+        public static bool SuppressBoundaryVisibility(bool shouldBoundaryVisibilityBeSuppressed)
         {
             XrBoundaryVisibilityMETA boundaryVisibility = shouldBoundaryVisibilityBeSuppressed ?
                 XrBoundaryVisibilityMETA.XR_BOUNDARY_VISIBILITY_SUPPRESSED_META :
@@ -55,6 +55,11 @@ namespace OpenXR.Extensions
             return
                 xrRequestBoundaryVisibilityMETA != null &&
                 true;
+        }
+
+        protected override void UnhookFunctions()
+        {
+            xrRequestBoundaryVisibilityMETA = null;
         }
 
         protected override bool CheckRequiredExtensions()
