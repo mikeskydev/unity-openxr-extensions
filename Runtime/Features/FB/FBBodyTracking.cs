@@ -179,7 +179,7 @@ namespace OpenXR.Extensions
             }
         }
 
-        #region OpenXR native bindings
+#region OpenXR native bindings
 
         static del_xrCreateBodyTrackerFB xrCreateBodyTrackerFB;
         static del_xrDestroyBodyTrackerFB xrDestroyBodyTrackerFB;
@@ -232,7 +232,7 @@ namespace OpenXR.Extensions
             return OpenXRRuntime.IsExtensionEnabled(XR_FB_BODY_TRACKING);
         }
 
-        protected unsafe override bool LoadBindings()
+        protected unsafe override bool HookFunctions()
         {
             try
             {
@@ -256,8 +256,18 @@ namespace OpenXR.Extensions
                 true;
         }
 
-        #endregion
+        protected override void UnhookFunctions()
+        {
+            intercept_xrGetSystem = null;
+            intercept_xrWaitFrame = null;
+            xrGetSystemProperties = null;
+            xrCreateBodyTrackerFB = null;
+            xrDestroyBodyTrackerFB = null;
+            xrLocateBodyJointsFB = null;
+            xrGetBodySkeletonFB = null;
+        }
     }
+#endregion
 }
 
 

@@ -11,7 +11,7 @@ using UnityEngine.XR.OpenXR.NativeTypes;
 
 namespace OpenXR.Extensions
 {
-    public abstract class FeatureBase<F> : OpenXRFeature where F : OpenXRFeature
+    public abstract class FeatureBase<Feature> : OpenXRFeature where Feature : OpenXRFeature
     {
         protected static ulong XrInstance = 0;
         protected static ulong XrSession = 0;
@@ -19,7 +19,7 @@ namespace OpenXR.Extensions
         protected static del_xrGetInstanceProcAddr GetInstanceProcAddr;
         protected static del_xrGetInstanceProcAddr OnGetInstanceProcAddr;
 
-        public static bool FeatureEnabled => OpenXRSettings.Instance.GetFeature<F>().enabled;
+        public static bool FeatureEnabled => OpenXRSettings.Instance.GetFeature<Feature>().enabled;
 
         [MonoPInvokeCallback(typeof(del_xrGetInstanceProcAddr))]
         protected static unsafe XrResult Intercepted_xrGetInstanceProcAddr(ulong instance, string originFunctionName, IntPtr* originFunctionPointer)
@@ -30,7 +30,7 @@ namespace OpenXR.Extensions
         }
 
         // This doesn't work without a pointer.
-        protected unsafe static void InterceptFunction<T>(string functionNameToReplace, T replacementFunctionDelegate, ref T originFunctionDelegate, string originFunctionName, IntPtr* originFunctionPointer)
+        protected static unsafe void InterceptFunction<T>(string functionNameToReplace, T replacementFunctionDelegate, ref T originFunctionDelegate, string originFunctionName, IntPtr* originFunctionPointer)
         {
             if (originFunctionName != functionNameToReplace || originFunctionDelegate != null)
                 return;
@@ -68,9 +68,13 @@ namespace OpenXR.Extensions
 
         protected abstract bool CheckRequiredExtensions();
 
-        protected virtual bool LoadBindings()
+        protected virtual bool HookFunctions()
         {
             return true;
+        }
+
+        protected virtual void UnhookFunctions()
+        {
         }
 
 
@@ -85,7 +89,7 @@ namespace OpenXR.Extensions
                 result = CheckRequiredExtensions();
 
             if (result)
-                result = LoadBindings();
+                result = HookFunctions();
 
             return result;
         }
@@ -103,6 +107,9 @@ namespace OpenXR.Extensions
         protected override void OnInstanceDestroy(ulong xrInstance)
         {
             XrInstance = 0;
+            GetInstanceProcAddr = null;
+            OnGetInstanceProcAddr = null;
+            UnhookFunctions();
         }
 
         protected unsafe override IntPtr HookGetInstanceProcAddr(IntPtr xrGetInstanceProcAddr)

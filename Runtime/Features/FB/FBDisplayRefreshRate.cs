@@ -108,14 +108,6 @@ namespace OpenXR.Extensions
             return false;
         }
 
-        protected override void OnSessionDestroy(ulong xrSession)
-        {
-            base.OnSessionDestroy(xrSession);
-            xrEnumerateDisplayRefreshRatesFB = null;
-            xrGetDisplayRefreshRateFB = null;
-            xrRequestDisplayRefreshRateFB = null;
-        }
-
         public delegate void DisplayRefreshRateChanged(float fromDisplayRefreshRate, float toDisplayRefreshRate);
         public static DisplayRefreshRateChanged OnDisplayRefreshRateChanged;
 
@@ -126,7 +118,7 @@ namespace OpenXR.Extensions
         static del_xrPollEvent xrPollEvent;
 
         [MonoPInvokeCallback(typeof(del_xrPollEvent))]
-        private unsafe static XrResult Intercepted_xrPollEvent(ulong xrSession, XrEventDataBuffer* eventData)
+        private static unsafe XrResult Intercepted_xrPollEvent(ulong xrSession, XrEventDataBuffer* eventData)
         {
             var result = xrPollEvent(xrSession, eventData);
 
@@ -147,7 +139,7 @@ namespace OpenXR.Extensions
             return base.HookGetInstanceProcAddr(xrGetInstanceProcAddr);
         }
 
-        protected unsafe static XrResult Intercept(ulong instance, string requestedFunctionName, IntPtr* outgoingFunctionPointer)
+        protected static unsafe XrResult Intercept(ulong instance, string requestedFunctionName, IntPtr* outgoingFunctionPointer)
         {
             InterceptFunction("xrPollEvent", Intercepted_xrPollEvent, ref xrPollEvent, requestedFunctionName, outgoingFunctionPointer);
             return XrResult.Success;
@@ -158,7 +150,7 @@ namespace OpenXR.Extensions
             return OpenXRRuntime.IsExtensionEnabled(XR_FB_DISPLAY_REFRESH_RATE);
         }
 
-        protected unsafe override bool LoadBindings()
+        protected unsafe override bool HookFunctions()
         {
             try
             {
@@ -179,6 +171,13 @@ namespace OpenXR.Extensions
                 true;
         }
 
+        protected override void UnhookFunctions()
+        {
+            xrPollEvent = null;
+            xrEnumerateDisplayRefreshRatesFB = null;
+            xrGetDisplayRefreshRateFB = null;
+            xrRequestDisplayRefreshRateFB = null;
+        }
 
         #endregion
     }

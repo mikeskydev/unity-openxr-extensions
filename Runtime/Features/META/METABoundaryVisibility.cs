@@ -41,7 +41,7 @@ namespace OpenXR.Extensions
         #region OpenXR native bindings
         static del_xrRequestBoundaryVisibilityMETA xrRequestBoundaryVisibilityMETA;
 
-        protected override bool LoadBindings()
+        protected override bool HookFunctions()
         {
             try
             {

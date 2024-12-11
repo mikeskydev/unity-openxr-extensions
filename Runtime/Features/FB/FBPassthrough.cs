@@ -204,7 +204,7 @@ namespace OpenXR.Extensions
             return OpenXRRuntime.IsExtensionEnabled(XR_FB_PASSTHROUGH);
         }
 
-        protected unsafe override bool LoadBindings()
+        protected unsafe override bool HookFunctions()
         {
             try
             {
@@ -234,6 +234,19 @@ namespace OpenXR.Extensions
                 xrPassthroughLayerResumeFB != null &&
                 xrPassthroughLayerSetStyleFB != null &&
                 true;
+        }
+
+        protected override void UnhookFunctions()
+        {
+            xrCreatePassthroughFB = null;
+            xrDestroyPassthroughFB = null;
+            xrPassthroughStartFB = null;
+            xrPassthroughPauseFB = null;
+            xrCreatePassthroughLayerFB = null;
+            xrDestroyPassthroughLayerFB = null;
+            xrPassthroughLayerPauseFB = null;
+            xrPassthroughLayerResumeFB = null;
+            xrPassthroughLayerSetStyleFB = null;
         }
         #endregion
     }
