@@ -36,12 +36,18 @@ namespace OpenXR.Extensions.Editor
             string splashScreenAssetPath = AssetDatabase.GetAssetPath(systemSplashScreen);
             string sourcePath = splashScreenAssetPath;
             string targetFolder = Path.Combine(gradlePath, "src/main/assets");
-            string targetPath = targetFolder + "/vr_splash.png";
 
-            // copy the splash over into the gradle folder and make sure it's not read only
-            FileUtil.ReplaceFile(sourcePath, targetPath);
-            FileInfo targetInfo = new FileInfo(targetPath);
-            targetInfo.IsReadOnly = false;
+            // Oculus splash
+            string oculusPath = targetFolder + "/vr_splash.png";
+            FileUtil.ReplaceFile(sourcePath, oculusPath);
+            FileInfo oculusInfo = new FileInfo(oculusPath);
+            oculusInfo.IsReadOnly = false;
+
+            // Pico splash
+            string picoPath = targetFolder + "/pico_splash.png";
+            FileUtil.ReplaceFile(sourcePath, picoPath);
+            FileInfo picoInfo = new FileInfo(picoPath);
+            picoInfo.IsReadOnly = false;
         }
 
         protected override ManifestRequirement ProvideManifestRequirementExt()
@@ -80,9 +86,29 @@ namespace OpenXR.Extensions.Editor
                         { "name", "com.oculus.intent.category.VR" }
                     }
                 },
+                // Pico helper
+                new ManifestElement()
+                {
+                    ElementPath = new List<string> { "manifest", "application", "meta-data" },
+                    Attributes = new Dictionary<string, string>
+                    {
+                        { "name", "pvr.app.type" },
+                        { "value", "vr" }
+                    }
+                },
+                // Pico helper
+                new ManifestElement()
+                {
+                    ElementPath = new List<string> { "manifest", "application", "meta-data" },
+                    Attributes = new Dictionary<string, string>
+                    {
+                        { "name", "pvr.sdk.version" },
+                        { "value", "OpenXR" }
+                    }
+                },
             };
             
-            // Oculus compositor driven splash screen
+            // Compositor driven splash screen
             if (SystemSplashScreen() != null)
             {
                 elementsToAdd.Add(new ManifestElement()
@@ -92,6 +118,15 @@ namespace OpenXR.Extensions.Editor
                     {
                         { "name", "com.oculus.ossplash" },
                         { "value", "true" }
+                    }
+                });
+                elementsToAdd.Add(new ManifestElement()
+                {
+                    ElementPath = new List<string> { "manifest", "application", "meta-data" },
+                    Attributes = new Dictionary<string, string>
+                    {
+                        { "name", "pvr.app.splash" },
+                        { "value", "1" }
                     }
                 });
             }

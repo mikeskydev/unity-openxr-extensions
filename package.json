@@ -1,7 +1,7 @@
 {
   "name": "dev.mikesky.openxrextensions",
   "displayName": "OpenXR Extensions",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "unity": "2021.3",
   "description": "OpenXR extensions for your Unity project. No vendor bloat.",
   "keywords": [
