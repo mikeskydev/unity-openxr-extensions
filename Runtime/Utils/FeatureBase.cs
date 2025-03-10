@@ -22,43 +22,39 @@ namespace OpenXR.Extensions
         public static bool FeatureEnabled => OpenXRSettings.Instance.GetFeature<Feature>().enabled;
 
         [MonoPInvokeCallback(typeof(del_xrGetInstanceProcAddr))]
-        protected static unsafe XrResult Intercepted_xrGetInstanceProcAddr(ulong instance, string originFunctionName, IntPtr* originFunctionPointer)
+        protected static XrResult Intercepted_xrGetInstanceProcAddr(ulong instance, string originFunctionName, ref IntPtr originFunctionPointer)
         {
-            var result = GetInstanceProcAddr(instance, originFunctionName, originFunctionPointer);
-            OnGetInstanceProcAddr?.Invoke(instance, originFunctionName, originFunctionPointer);
+            var result = GetInstanceProcAddr(instance, originFunctionName, ref originFunctionPointer);
+            OnGetInstanceProcAddr?.Invoke(instance, originFunctionName, ref originFunctionPointer);
             return result;
         }
 
-        // This doesn't work without a pointer.
-        protected static unsafe void InterceptFunction<T>(string functionNameToReplace, T replacementFunctionDelegate, ref T originFunctionDelegate, string originFunctionName, IntPtr* originFunctionPointer)
+        protected static void InterceptFunction<T>(string functionNameToReplace, T replacementFunctionDelegate, ref T originFunctionDelegate, string originFunctionName, ref IntPtr originFunctionPointer)
         {
             if (originFunctionName != functionNameToReplace || originFunctionDelegate != null)
                 return;
 
             // Assign origin function delegate
-            originFunctionDelegate = Marshal.GetDelegateForFunctionPointer<T>(*originFunctionPointer);
+            originFunctionDelegate = Marshal.GetDelegateForFunctionPointer<T>(originFunctionPointer);
 
             // Set origin function pointer to the replacement delegate
-            *originFunctionPointer = Marshal.GetFunctionPointerForDelegate(replacementFunctionDelegate);
+            originFunctionPointer = Marshal.GetFunctionPointerForDelegate(replacementFunctionDelegate);
         }
 
         protected XrResult HookFunction<T>(string functionName, ref T functionDelegate)
         {
             if (functionDelegate != null)
             {
-                Debug.LogWarning($"Function {functionName} already hooked. Ignoring.");
-                return XrResult.ValidationFailure;
+                Debug.LogWarning($"Function {functionName} was already hooked, overwriting.");
             }
 
             XrResult result;
             IntPtr functionPtr = IntPtr.Zero;
-            unsafe
+
+            result = GetInstanceProcAddr(XrInstance, functionName, ref functionPtr);
+            if (result != 0)
             {
-                result = GetInstanceProcAddr(XrInstance, functionName, &functionPtr);
-                if (result != 0)
-                {
-                    throw new GetInstanceProcAddrException($"Failed to find {functionName}. Error code: {result}");
-                }
+                throw new GetInstanceProcAddrException($"Failed to find {functionName}. Error code: {result}");
             }
 
             functionDelegate = Marshal.GetDelegateForFunctionPointer<T>(functionPtr);
@@ -112,9 +108,9 @@ namespace OpenXR.Extensions
             UnhookFunctions();
         }
 
-        protected unsafe override IntPtr HookGetInstanceProcAddr(IntPtr xrGetInstanceProcAddr)
+        protected override IntPtr HookGetInstanceProcAddr(IntPtr xrGetInstanceProcAddr)
         {
-            InterceptFunction("xrGetInstanceProcAddr", Intercepted_xrGetInstanceProcAddr, ref GetInstanceProcAddr, "xrGetInstanceProcAddr", &xrGetInstanceProcAddr);
+            InterceptFunction("xrGetInstanceProcAddr", Intercepted_xrGetInstanceProcAddr, ref GetInstanceProcAddr, "xrGetInstanceProcAddr",  ref xrGetInstanceProcAddr);
             return xrGetInstanceProcAddr;
         }
         #endregion

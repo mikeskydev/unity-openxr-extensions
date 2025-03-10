@@ -139,9 +139,9 @@ namespace OpenXR.Extensions
             return base.HookGetInstanceProcAddr(xrGetInstanceProcAddr);
         }
 
-        protected static unsafe XrResult Intercept(ulong instance, string requestedFunctionName, IntPtr* outgoingFunctionPointer)
+        protected static unsafe XrResult Intercept(ulong instance, string requestedFunctionName, ref IntPtr outgoingFunctionPointer)
         {
-            InterceptFunction("xrPollEvent", Intercepted_xrPollEvent, ref xrPollEvent, requestedFunctionName, outgoingFunctionPointer);
+            InterceptFunction("xrPollEvent", Intercepted_xrPollEvent, ref xrPollEvent, requestedFunctionName, ref outgoingFunctionPointer);
             return XrResult.Success;
         }
 

@@ -219,10 +219,10 @@ namespace OpenXR.Extensions
             return base.HookGetInstanceProcAddr(xrGetInstanceProcAddr);
         }
 
-        protected unsafe static XrResult Intercept(ulong instance, string requestedFunctionName, IntPtr* outgoingFunctionPointer)
+        protected unsafe static XrResult Intercept(ulong instance, string requestedFunctionName, ref IntPtr outgoingFunctionPointer)
         {
-            InterceptFunction("xrGetSystem", Intercepted_xrGetSystem, ref intercept_xrGetSystem, requestedFunctionName, outgoingFunctionPointer);
-            InterceptFunction("xrWaitFrame", Intercepted_xrWaitFrame, ref intercept_xrWaitFrame, requestedFunctionName, outgoingFunctionPointer);
+            InterceptFunction("xrGetSystem", Intercepted_xrGetSystem, ref intercept_xrGetSystem, requestedFunctionName, ref outgoingFunctionPointer);
+            InterceptFunction("xrWaitFrame", Intercepted_xrWaitFrame, ref intercept_xrWaitFrame, requestedFunctionName, ref outgoingFunctionPointer);
             return XrResult.Success;
         }
 

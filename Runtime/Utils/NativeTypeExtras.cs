@@ -24,7 +24,7 @@ namespace UnityEngine.XR.OpenXR.NativeTypes
     [StructLayout(LayoutKind.Sequential)] public struct XrActionSet { public UInt64 handle; }
 
 
-    public static class Constants
+    public class Constants
     {
         public const uint XR_TRUE = 1;
         public const uint XR_FALSE = 0;
@@ -234,7 +234,7 @@ namespace UnityEngine.XR.OpenXR.NativeTypes
         public XrPosef poseInReferenceSpace;
     }
 
-    public unsafe delegate XrResult del_xrGetInstanceProcAddr(UInt64 instance, string name, IntPtr* function);
+    public delegate XrResult del_xrGetInstanceProcAddr(UInt64 instance, string name, ref IntPtr function);
     unsafe delegate XrResult del_xrWaitFrame(UInt64 xrSession, XrFrameWaitInfo* frameWaitInfo, XrFrameState* frameState);
     unsafe delegate XrResult del_xrEndFrame(UInt64 xrSession, XrFrameEndInfo* frameEndInfo);
     unsafe delegate XrResult del_xrGetSystem(UInt64 instance, XrSystemGetInfo* getInfo, UInt64* systemId);
