@@ -112,7 +112,7 @@ namespace OpenXR.Extensions.Editor
                     ElementPath = new List<string> { "manifest", "application", "meta-data" },
                     Attributes = new Dictionary<string, string>
                     {
-                        { "name", "pvr.sdk.version_code" },
+                        { "name", "pxr.sdk.version_code" },
                         { "value", "5900" }
                     }
                 },
