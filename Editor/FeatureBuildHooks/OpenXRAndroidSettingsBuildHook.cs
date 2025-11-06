@@ -106,6 +106,16 @@ namespace OpenXR.Extensions.Editor
                         { "value", "OpenXR" }
                     }
                 },
+                // Pico helper, required to run on Neo 3
+                new ManifestElement()
+                {
+                    ElementPath = new List<string> { "manifest", "application", "meta-data" },
+                    Attributes = new Dictionary<string, string>
+                    {
+                        { "name", "pvr.sdk.version_code" },
+                        { "value", "5900" }
+                    }
+                },
             };
             
             // Compositor driven splash screen
