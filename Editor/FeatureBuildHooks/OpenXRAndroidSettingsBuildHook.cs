@@ -113,7 +113,7 @@ namespace OpenXR.Extensions.Editor
                     Attributes = new Dictionary<string, string>
                     {
                         { "name", "pxr.sdk.version_code" },
-                        { "value", "5900" }
+                        { "value", "5800" }
                     }
                 },
             };
