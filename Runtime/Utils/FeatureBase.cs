@@ -33,11 +33,18 @@ namespace OpenXR.Extensions
                 s_CallbackPointer = Marshal.GetFunctionPointerForDelegate(s_Callback);
             }
 
-            if (xrGetInstanceProcAddr != s_CallbackPointer && s_GetInstanceProcAddr == null)
+            // Insert the shared callback only once per loader chain. A later feature may
+            // receive another package's wrapper around our callback: rebinding our
+            // downstream delegate to it would create a cycle. Returning our callback
+            // again would instead discard that wrapper, so preserve the incoming chain.
+            if (s_GetInstanceProcAddr != null)
             {
-                s_GetInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<del_xrGetInstanceProcAddr>(
-                    xrGetInstanceProcAddr);
+                return xrGetInstanceProcAddr;
             }
+
+            // Unhook clears this binding when the final handler is removed.
+            s_GetInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<del_xrGetInstanceProcAddr>(
+                xrGetInstanceProcAddr);
 
             return s_CallbackPointer;
         }
