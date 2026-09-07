@@ -21,6 +21,21 @@ namespace OpenXR.Extensions
 
         public static del_xrGetInstanceProcAddr GetInstanceProcAddr => s_GetInstanceProcAddr;
 
+#if UNITY_EDITOR
+        // With domain reload disabled, these statics can outlive the native loader.
+        // Normal teardown releases the binding, but failed initialization may never
+        // reach OnInstanceDestroy. Start each editor play session with an empty chain.
+        // Editor only: resetting at SubsystemRegistration in players could race XR
+        // startup, which may also run at that phase.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            s_Handlers.Clear();
+            s_GetInstanceProcAddr = null;
+            s_CallbackPointer = IntPtr.Zero;
+        }
+#endif
+
         public static IntPtr Hook(IntPtr xrGetInstanceProcAddr, del_xrGetInstanceProcAddr handler)
         {
             if (!s_Handlers.Contains(handler))
@@ -42,7 +57,7 @@ namespace OpenXR.Extensions
                 return xrGetInstanceProcAddr;
             }
 
-            // Unhook clears this binding when the final handler is removed.
+            // Unhook and the editor subsystem reset clear this binding between lifetimes.
             s_GetInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<del_xrGetInstanceProcAddr>(
                 xrGetInstanceProcAddr);
 

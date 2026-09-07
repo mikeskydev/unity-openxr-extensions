@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using OpenXR.Extensions;
 using UnityEngine.XR.OpenXR.NativeTypes;
@@ -28,7 +29,12 @@ internal static class Program
             ("Interleaved wrapper is preserved without recursion", Interleaved),
             ("Multiple interleaved wrappers are preserved", MultipleWrappers),
             ("Partial teardown keeps remaining handlers", PartialTeardown),
-            ("Full teardown permits a new loader binding", Restart)
+            ("Full teardown permits a new loader binding", Restart),
+#if UNITY_EDITOR
+            ("Editor reset clears an incompletely torn-down chain", EditorReset)
+#else
+            ("Player does not register an editor subsystem reset", NoPlayerReset)
+#endif
         };
         int failures = 0;
         foreach (var test in tests)
@@ -154,6 +160,40 @@ internal static class Program
         GetInstanceProcAddrInterceptor.Unhook(HandlerA);
         Lookup(chain, "origin", "B");
     }
+#if UNITY_EDITOR
+    private static void EditorReset()
+    {
+        // Deliberately leave A and B registered, as after failed initialization.
+        Adjacent();
+        var reset = typeof(GetInstanceProcAddrInterceptor).GetMethod(
+            "ResetStatics", BindingFlags.NonPublic | BindingFlags.Static);
+        if (reset == null) throw new Exception("Missing editor subsystem reset");
+        var attributes = reset.GetCustomAttributesData();
+        bool registered = false;
+        foreach (var attribute in attributes)
+        {
+            if (attribute.AttributeType == typeof(UnityEngine.RuntimeInitializeOnLoadMethodAttribute))
+            {
+                Equal((int)UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration,
+                    Convert.ToInt32(attribute.ConstructorArguments[0].Value), "Reset registration phase");
+                registered = true;
+            }
+        }
+        Equal(true, registered, "Reset must be registered with Unity");
+        reset.Invoke(null, null);
+        Equal<del_xrGetInstanceProcAddr>(null, GetInstanceProcAddrInterceptor.GetInstanceProcAddr,
+            "Reset must release the previous loader binding");
+        Lookup(GetInstanceProcAddrInterceptor.Hook(Origin("new origin"), HandlerC), "new origin", "C");
+    }
+#else
+    private static void NoPlayerReset()
+    {
+        Equal<MethodInfo>(null, typeof(GetInstanceProcAddrInterceptor).GetMethod(
+            "ResetStatics", BindingFlags.NonPublic | BindingFlags.Static),
+            "Editor reset must not be compiled into players");
+    }
+#endif
+
     private static void Restart()
     {
         Adjacent();

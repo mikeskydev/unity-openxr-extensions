@@ -2,6 +2,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <TestEditor Condition="'$(TestEditor)' == ''">true</TestEditor>
+    <DefineConstants Condition="'$(TestEditor)' == 'true'">$(DefineConstants);UNITY_EDITOR</DefineConstants>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <InterceptorSource Condition="'$(InterceptorSource)' == ''">../../Runtime/Utils/FeatureBase.cs</InterceptorSource>
   </PropertyGroup>
